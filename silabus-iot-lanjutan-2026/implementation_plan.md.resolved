@@ -1,0 +1,123 @@
+# Refine Komprehensif Seluruh Modul IoT ESP32
+
+## Deskripsi
+
+Merewrite ulang seluruh modul IOT-Dasar (16 pertemuan) dan IOT-Lanjutan (16 pertemuan) agar **sangat detail dan komprehensif**, berdasarkan silabus di [dasar.md](file:///mnt/DataShare/MyHome/Documents/Downloads/claude-workspace/project-brainstrom/silabus-iot-lanjutan-2026/dasar.md) dan [lanjutan.md](file:///mnt/DataShare/MyHome/Documents/Downloads/claude-workspace/project-brainstrom/silabus-iot-lanjutan-2026/lanjutan.md).
+
+### Perubahan Utama
+
+1. **PlatformIO sebagai IDE utama** — semua kode menggunakan `platformio.ini` + `src/main.cpp`
+2. **Materi sangat komprehensif** — setiap modul 600-1000+ baris, teori mendalam
+3. **Tambahan: Home Assistant + ESPHome** — integrasi dengan smart home ecosystem
+4. **Hapus Edge AI/TinyML** — materi ini dihilangkan dari IOT-Lanjutan, sesi digeser
+
+---
+
+## Struktur Final — IOT-Dasar (16 Pertemuan)
+
+| # | Topik | Perubahan |
+|---|---|---|
+| 1 | Pengenalan IoT & ESP32 | Refine |
+| 2 | **Instalasi PlatformIO & First Project** | **PlatformIO utama**, Arduino IDE alternatif |
+| 3 | GPIO Output — Digital & PWM | Refine + kode PlatformIO |
+| 4 | GPIO Input — Digital & Analog ADC | Refine + kode PlatformIO |
+| 5 | UART (ESP32 ↔ Sensor/Modul) | Refine |
+| 6 | I2C (ESP32 ↔ Sensor/Display) | Refine |
+| 7 | SPI (ESP32 ↔ Modul Penyimpanan) | Refine |
+| 8 | Sensor — PIR, LDR, HC-SR04, BMP280 | Refine |
+| 9 | Aktuator — Servo, Relay, Motor DC | Refine |
+| 10 | WiFi — STA/AP, NTP | Refine |
+| 11 | Bluetooth BLE | Refine |
+| 12 | Library Populer + **Pengenalan ESPHome** | WiFiManager, ArduinoJson, Preferences + intro ESPHome |
+| 13 | **Home Assistant & ESPHome** | **BARU**: Setup HA, ESPHome YAML config, integrasi sensor/aktuator |
+| 14 | Web Server & Platform IoT (Blynk/MQTT) | Gabungan Web Server + Blynk + MQTT preview |
+| 15 | Integrasi Sistem & Persiapan Proyek | Refine |
+| 16 | Proyek Akhir — Presentasi | Refine |
+
+---
+
+## Struktur Final — IOT-Lanjutan (16 Pertemuan)
+
+> **Edge AI (TinyML) DIHAPUS.** Sesi 9-10 lama (TinyML, Anomaly Detection) dihilangkan. Sesi-sesi setelahnya digeser maju, dan slot yang terbuka diisi dengan materi Home Assistant dan Computer Vision yang lebih mendalam.
+
+| # | Topik | Asal / Perubahan |
+|---|---|---|
+| 1 | Inter-ESP32 UART | Sama (P1 lama) |
+| 2 | Inter-ESP32 I2C Master/Slave | Sama (P2 lama) |
+| 3 | ESP-NOW Point-to-Point | Sama (P3 lama) |
+| 4 | ESP-NOW Gateway Multi-Node → MQTT Bridge | Sama (P4 lama) |
+| 5 | HTTP GET — REST API Consumption | Sama (P5 lama) |
+| 6 | HTTP POST — Kirim Data ke Server | Sama (P6 lama) |
+| 7 | MQTT Part 1 — Arsitektur & Setup Broker Mosquitto | Sama (P7 lama) |
+| 8 | MQTT Part 2 — ESP32 Publisher & Subscriber | Sama (P8 lama) |
+| 9 | **Home Assistant Advanced & ESPHome Lanjutan** | **BARU** (slot P9 — ganti Edge AI) |
+| 10 | **HA Automasi, Dashboard & Integrasi MQTT** | **BARU** (slot P10 — ganti Edge AI) |
+| 11 | ESP32-CAM — Setup & MJPEG Streaming | Geser dari P11 lama |
+| 12 | Computer Vision On-Device — Face Detection (ESP-WHO) | Geser dari P12 lama |
+| 13 | Computer Vision — OpenCV Color Tracking + MQTT | Geser dari P13 lama |
+| 14 | Computer Vision — YOLO + MediaPipe Gesture | Geser dari P14 lama |
+| 15 | Arsitektur Sistem Terpadu & Persiapan Proyek | Sama (P15 lama) |
+| 16 | Proyek Akhir — Presentasi | Sama (P16 lama) |
+
+### Detail Materi Baru Home Assistant (IOT-Lanjutan)
+
+**P9 — Home Assistant Advanced & ESPHome Lanjutan:**
+- ESPHome custom sensor components (C++ lambda)
+- ESPHome OTA + logging + fallback hotspot
+- HA Add-ons: Mosquitto Broker, File Editor, Terminal
+- ESPHome sebagai MQTT bridge (dual mode: native API + MQTT)
+- Integrasi sensor IoT Lanjutan (ESP-NOW nodes) ke HA via ESPHome gateway
+
+**P10 — HA Automasi, Dashboard & Integrasi MQTT:**
+- HA Automations: trigger, condition, action — YAML dan UI
+- HA Dashboard: Lovelace cards (gauge, graph, button, entity)
+- HA + MQTT: ESP32 PubSubClient → HA MQTT integration (auto-discovery)
+- HA Scenes & Scripts untuk kontrol multi-perangkat
+- Notifikasi: HA → Telegram/Companion App
+
+---
+
+## Format Setiap Modul
+
+Setiap [modul.md](file:///mnt/DataShare/MyHome/Documents/Downloads/claude-workspace/project-brainstrom/silabus-iot-lanjutan-2026/IOT-Dasar/Pertemuan-3/modul.md) mengikuti struktur:
+
+```
+# Modul Pertemuan X
+# Judul Topik
+
+## 1. Maksud dan Tujuan Materi
+## 2. Teori Materi (sangat detail, diagram ASCII, tabel perbandingan)
+## 3. Panduan Praktikum
+   - platformio.ini lengkap
+   - Skema rangkaian ASCII
+   - Kode program (src/main.cpp) dengan komentar komprehensif
+   - Kebutuhan komponen
+   - **Versi OLED Display** — setiap praktikum menyertakan variasi tambahan
+     yang menampilkan output/data ke OLED SSD1306 128×64 (I2C)
+## 4. Referensi
+```
+
+> [!IMPORTANT]
+> **Setiap praktikum menyediakan 2 versi**: versi dasar (Serial Monitor) dan **versi OLED** yang menampilkan data sensor/status ke layar OLED SSD1306. Ini melatih mahasiswa menggunakan display dan membuat output yang lebih visual.
+
+### Contoh `platformio.ini`
+
+```ini
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+monitor_speed = 115200
+lib_deps =
+    adafruit/DHT sensor library@^1.4.6
+    adafruit/Adafruit Unified Sensor@^1.1.14
+```
+
+---
+
+## Verification Plan
+
+1. `find` → 32 file [modul.md](file:///mnt/DataShare/MyHome/Documents/Downloads/claude-workspace/project-brainstrom/silabus-iot-lanjutan-2026/IOT-Dasar/Pertemuan-3/modul.md) ada
+2. `grep "platformio.ini"` → setiap modul P2+ menyertakan config PlatformIO
+3. `grep "Home Assistant\|ESPHome"` → P12-13 Dasar dan P9-10 Lanjutan membahas HA/ESPHome
+4. `grep "Edge AI\|TinyML"` → tidak ditemukan di modul manapun (kecuali referensi minor)
