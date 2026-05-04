@@ -1,2 +1,2 @@
 # brainstorming-project
-tumpahan apapun yang ada di otak. write now,  do as you want.
+tumpahan apapun yang ada di otak. write now,  do what you want.
