@@ -1,15 +1,19 @@
 # Sistem Monitoring Listrik Rumah Tangga Berbasis Few-Shot Learning pada Mikrokontroler ESP32
 
-> **Ide Penelitian :** Sistem NILM (Non Intrusive Load Monitoring) yang dapat mengenali peralatan rumah tangga, dan beroperasi secara lokal di ESP32.
+> **Ide Penelitian :** Sistem NILM (Non Intrusive Load Monitoring) yang dapat mengenali status peralatan rumah tangga, dan beroperasi secara lokal di ESP32.
 
 ---
 ## Latar Belakang
 
-Tagihan listrik meningkat dari bulan ke bulan, namun sulit menentukan perangkat mana yang paling banyak berkontribusi terhadap konsumsi tersebut. Sebuah studi menunjukkan bahwa umpan balik konsumsi per perangkat dapat **meningkatkan efisiensi energi rumah tangga hingga 15%** [Khan et al., 2019]. Kulkas? AC? Atau charger laptop yang tertinggal terhubung ke daya?
+Konsumsi energi listrik rumah tangga merupakan salah satu komponen vital dalam kehidupan sehari-hari. Namun demikian, sebagian besar rumah tangga tidak memiliki visibilitas yang memadai terhadap pola konsumsi energi mereka. Tagihan listrik bulanan hanya memberikan angka total tanpa merinci perangkat mana yang paling boros, kapan konsumsi puncak terjadi, atau apakah ada pemborosan yang tidak disadari.
 
-Ini adalah permasalahan yang sangat umum di rumah tangga. Solusi yang tersedia di pasaran umumnya hanya menawarkan dua pilihan: memasang sub-meter atau smart plug di setiap stopkontak yang membutuhkan biaya dan instalasi yang tidak sedikit, atau menggunakan aplikasi yang mengharuskan pengguna mengunggah data konsumsi ke server pihak ketiga. Di sinilah NILM hadir sebagai solusi: **satu sensor di panel utama, informasi untuk semua perangkat** [Zoha et al., 2012].
+Tagihan listrik meningkat dari bulan ke bulan, namun sulit menentukan perangkat mana yang paling banyak berkontribusi terhadap konsumsi tersebut. Sebuah studi menunjukkan bahwa umpan balik konsumsi per perangkat dapat **meningkatkan efisiensi energi rumah tangga hingga 15%** [Khan et al., 2019].
 
-Tulisan ini membahas pendekatan berbasis *edge computing*: satu sensor di panel listrik utama, semua perangkat teridentifikasi, dan seluruh komputasi berjalan secara lokal di chip seharga Rp45.000.
+Keterbatasan visibilitas ini berdampak pada dua permasalahan utama. Pertama, pengguna tidak dapat mengambil keputusan berbasis data untuk mengurangi pemborosan energi. Kedua, deteksi dini kerusakan atau penurunan efisiensi perangkat seperti AC yang mulai membutuhkan daya lebih besar karena filter kotor atau kulkas yang kompresornya mulai melemah tidak dapat dilakukan secara proaktif.
+
+Ini adalah permasalahan yang sangat umum di rumah tangga. Solusi yang dilakukan umumnya dengan memasang sub-meter atau smart plug di setiap stopkontak, namun pasti membutuhkan biaya yang tidak sedikit. Di sinilah ide NILM hadir sebagai solusi: **satu sensor di panel utama, informasi untuk semua perangkat**. Dengan menganalisis sinyal listrik agregat dari satu titik pengukuran ini, sistem NILM dapat mengidentifikasi perangkat individual yang sedang aktif berdasarkan **sidik jari listrik** (*electrical fingerprint*) yang unik untuk setiap perangkat meliputi daya aktif, karakteristik arus transien saat penyalaan, dan tingkat distorsi harmonik [Zoha et al., 2012].
+
+Kemudian paradigma Few-Shot Learning (FSL) dipilih karena memungkinkan sistem untuk mengenali kelas baru dari contoh yang sedikit. [Mihailescu et al., 2020] mengembangkan sistem end-to-end few-shot NILM berbasis Arduino dengan biaya $77.59, di mana pengguna cukup menyalakan perangkat beberapa kali sebagai proses onboarding. [Ferraz et al.] menggunakan kombinasi Siamese Network dan KNN untuk mencapai akurasi 95.77% dengan kemampuan penambahan perangkat baru secara online.
 
 ---
 
@@ -19,77 +23,60 @@ NILM pertama kali diusulkan oleh Hart [1992] dengan premis yang sederhana: setia
 
 - **Daya aktif (P) dan daya reaktif (Q)** — fitur paling mendasar
 - **Harmonik arus** — efektif untuk beban non-linear [Srinivasan et al., 2006]
-- **Trajektori Voltage-Current (V-I)** — representasi visual 2D yang kaya informasi [Iksan et al., 2015]
-- **Transien peralihan** — lonjakan arus sesaat saat perangkat pertama kali dinyalakan
+- **Trajektori Voltage-Current (V-I)** — Hubungan antara tegangan dan arus pada sebuah alat elektronik
+- **Transien peralihan** : lonjakan arus sesaat saat perangkat pertama kali dinyalakan
 
 Sebagai contoh konkret:
 
-- **Setrika** mengonsumsi daya besar dengan sinyal arus yang hampir sempurna sinusoidal — langsung stabil tanpa lonjakan.
+- **Setrika** mengonsumsi daya besar dengan sinyal arus yang hampir sinusoidal sempurna dan stabil tanpa lonjakan.
 - **Kulkas** saat kompresornya mulai bekerja menghasilkan lonjakan arus yang sangat besar, bisa mencapai 5–7 kali arus normalnya, sebelum turun ke kondisi stabil.
-- **Charger laptop** memiliki kandungan harmonik tinggi akibat rangkaian switching di dalamnya [Srinivasan et al., 2006].
-- **Lampu LED** juga memiliki kandungan harmonik, namun dengan profil distribusi frekuensi yang berbeda dari charger [Zheng et al., 2018].
+- **Charger laptop** memiliki arus harmonik tinggi akibat rangkaian switching di dalamnya [Srinivasan et al., 2006].
+- **Lampu LED** juga memiliki arus harmonik, namun dengan profil distribusi frekuensi yang berbeda dari charger [Zheng et al., 2018].
 
-Penelitian di bidang NILM masih sangat aktif hingga saat ini. Zoha et al. [2012] mengklasifikasikan pendekatan NILM menjadi dua kelompok besar: **event-based** (deteksi peristiwa nyala/mati) dan **state-based** (estimasi status perangkat secara kontinu). Untuk implementasi di perangkat *edge* dengan sumber daya terbatas, pendekatan event-based lebih efisien karena hanya membutuhkan komputasi saat ada perubahan beban [Kotsilitis & Marcoulaki, 2023].
+Penelitian di bidang NILM masih sangat aktif hingga saat ini. Zoha et al. [2012] mengklasifikasikan pendekatan NILM menjadi dua kelompok besar: **event-based** (deteksi peristiwa ketika nyala/mati nya alat elektronik) dan **state-based** (estimasi status perangkat secara kontinu). Untuk implementasi di perangkat *edge* dengan sumber daya terbatas, pendekatan event-based lebih dinilai efisien karena hanya membutuhkan komputasi saat ada perubahan beban [Kotsilitis & Marcoulaki, 2023].
 
 ---
 
-## Celah Penelitian: NILM Belum "Personal"
+## Celah Penelitian: NILM dinilai Belum "Personal"
 
 Permasalahan fundamental NILM modern adalah **ketergantungan pada data berlabel dalam jumlah besar**. Model *deep learning* mutakhir sekalipun membutuhkan dataset dengan ratusan hingga ribuan jam rekaman dari berbagai rumah tangga [Athanasiadis et al., 2021]. Konsekuensinya:
 
 - Model yang dilatih pada dataset publik (REDD, UK-DALE, REFIT) sering **gagal pada instalasi baru** karena perbedaan karakteristik perangkat antarmerek dan antargenerasi [Athanasiadis et al., 2021].
-- Pengguna awam tidak mampu mengoperasikan pipeline *machine learning* untuk menambahkan perangkat baru.
+- Pengguna awam tidak mampu mengoperasikan pipeline/flow *machine learning* untuk menambahkan perangkat baru.
 - Model besar tidak dapat berjalan di perangkat *edge* berbiaya rendah seperti ESP32 [Warden & Situnayake, 2019].
 
-Pendekatan **self-adapting NILM** yang dikembangkan Wu et al. [2020] menawarkan alternatif, di mana sistem membangun *library signature* secara adaptif berdasarkan data pengguna aktual — bukan dari dataset generik. Penelitian ini mengembangkan konsep tersebut lebih jauh dengan memperketat batasan sumber daya komputasi hingga level mikrokontroler.
+Pendekatan **self-adapting NILM** yang dikembangkan Wu et al. [2020] menawarkan alternatif, di mana sistem membangun *library signature* secara adaptif berdasarkan data personal bukan dari dataset umum, dan penelitian ini juga mengembangkan konsep lebih jauh dengan memperketat batasan resource komputasi hingga mampu berjalan level mikrokontroler.
 
 ---
 
 ## Pembeda Utama: Few-Shot Learning
 
-Daripada memerlukan ribuan data untuk pelatihan, sistem ini dirancang agar dapat belajar hanya dari **3–10 kali siklus nyala-mati** per perangkat. *Few-shot learning* (FSL) adalah paradigma pembelajaran mesin di mana model mampu menggeneralisasi kelas baru dari hanya beberapa contoh (*N-way K-shot*, lazimnya K = 1 hingga 10) [Jia et al., 2024]. Dalam konteks sistem ini:
+Mengacu pada konsep **self-adapting NILM**, daripada memerlukan ribuan data untuk pelatihan, sistem ini dirancang agar dapat belajar dari **3–10 kali siklus nyala-mati** per perangkat yang dikenal dengan istilah **Few-shot learning**. *Few-shot learning* (FSL) merupakan paradigma *Machine Learning* di mana model mampu menggeneralisasi kelas baru dari hanya beberapa contoh (*N-way K-shot*, lazimnya K = 1 hingga 10) [Jia et al., 2024]. Dimana dalam konteks sistem ini sebagai contoh mengenalkan kulkas, maka yang dilakukan pengguna meliputi:
 
 1. Pengguna menyalakan kulkas
 2. Menekan tombol "Tambah Alat — Kulkas" di aplikasi
 3. Sistem merekam "sidik jari" kelistrikannya
 4. Proses tersebut diulangi 3–5 kali
-5. Selesai — sistem telah mengenali kulkas pengguna tersebut
+5. Selesai — sistem harusnya bisa mengenali kulkas yang baru ditambahkan
 
-Proses ini disebut **onboarding**. Jia et al. [2024] membuktikan bahwa *prototype network* berbasis trajektori V-I mampu mengklasifikasikan perangkat NILM **tanpa perlu retraining** ketika kelas baru ditambahkan — prinsip yang sama yang diadopsi dalam arsitektur ini.
-
----
-
-## KNN, FSL, dan ML: Satu Mekanisme yang Sama
-
-Dalam sebagian besar literatur dan kurikulum, **KNN** (K-Nearest Neighbors), **Few-Shot Learning**, dan **Klasifikasi ML** diajarkan sebagai topik yang terpisah. Namun secara matematis, ketiganya merupakan satu mekanisme yang sama:
-
-```
-KNN biasa           = FSL paling sederhana (tanpa neural encoder)
-Prototype Network   = 1-NN ke centroid kelas di embedding space
-Matching Network    = KNN dengan attention weighting
-```
-
-Artinya: ketika pengguna "mengajarkan" sistem dengan 3 contoh kulkas, lalu sistem mengidentifikasi kulkas baru berdasarkan kedekatannya dengan contoh-contoh tersebut — itulah few-shot learning. Bukan dua sistem yang digabungkan, melainkan satu pipeline dengan satu mekanisme.
-
-Hal ini juga berarti KNN **tidak mengalami catastrophic forgetting**. Neural network konvensional cenderung "melupakan" kelas-kelas lama ketika kelas baru ditambahkan. KNN tidak memiliki masalah ini: cukup tambahkan data baru ke support set di Flash — tidak ada gradient descent, tidak ada retraining [Jia et al., 2024]. Khan et al. [2019] memvalidasi pendekatan KNN (K=5) untuk NILM, dan da Costa Filho et al. [2025] mengkonfirmasi deployment langsung KNN di ESP32 untuk klasifikasi beban IoT secara real-time dengan normalisasi sebagai kunci performa.
+Proses ini disebut **onboarding**. Jia et al. [2024] membuktikan bahwa *prototype network* berbasis trajektori V-I mampu mengklasifikasikan perangkat NILM **tanpa perlu retraining** ketika kelas baru ditambahkan.
 
 ---
+## Fitur yang Digunakan: Pendekatan Berbasis Fisika Kelistrikan
 
-## Fitur yang Digunakan: Pendekatan Berbasis Fisika
-
-Sebagian besar pendekatan FSL-NILM terkini berfokus pada representasi berbasis citra (trajektori V-I) atau sinyal mentah yang membutuhkan arsitektur neural network berat [Jia et al., 2024]. Pendekatan yang diusulkan di sini mengambil jalur berbeda: **mengekstraksi fitur yang secara fisika kelistrikan bermakna dan dapat diukur langsung**, lalu menerapkan FSL-KNN pada representasi yang jauh lebih ringkas.
+Sebagian besar pendekatan FSL-NILM terkini berfokus pada representasi berbasis citra (trajektori V-I) atau sinyal mentah yang membutuhkan arsitektur neural network berat [Jia et al., 2024]. Pendekatan yang diusulkan di sini mengambil jalur berbeda: **mengekstraksi fitur yang secara fisika kelistrikan bermakna dan dapat diukur langsung**, lalu menerapkan FSL-KNN pada representasi yang jauh lebih ringan.
 
 ### `Φ = [P, Q, Inrush_ratio, H3, H5]`
 
-**P — Daya Aktif:** Jumlah Watt yang benar-benar dikonsumsi. Fitur paling mendasar untuk membedakan kelas beban [Zoha et al., 2012].
+**P — Daya Aktif:** Jumlah Watt yang benar-benar dikonsumsi. Fitur paling mendasar untuk membedakan kelas beban elektronik [Zoha et al., 2012].
 
 **Q — Daya Reaktif:** Komponen ini membedakan beban *resistif* dari beban *induktif*. Motor kipas angin memiliki Q yang signifikan karena adanya induktansi dari kumparan stator. Setrika mendekati nol. Tanpa Q, setrika dan kulkas saat idle berpotensi tertukar karena daya aktifnya bisa serupa [Srinivasan et al., 2006].
 
-**Inrush_ratio:** Rasio antara arus puncak saat perangkat pertama kali dinyalakan terhadap arus steady-state-nya. Kulkas mencapai 5–7×, setrika sekitar 1,0, rice cooker sekitar 1,1–1,3. Srinivasan et al. [2006] mengidentifikasi transien peralihan sebagai fitur yang sangat diskriminatif untuk membedakan perangkat dengan daya aktif yang serupa.
+**Inrush_ratio/Inrush_current:** Rasio antara arus puncak saat perangkat pertama kali dinyalakan terhadap arus steady-state-nya. Contoh dimana Kulkas dapat mencapai 5–7x arus normalnya, sedangkan setrika sekitar 1x, rice cooker sekitar 1x,1–1,3x. Srinivasan et al. [2006] mengidentifikasi transien peralihan sebagai fitur yang sangat diskriminatif untuk membedakan perangkat dengan daya aktif yang serupa.
 
-**H3 dan H5 — Harmonik Orde 3 dan 5:** Srinivasan et al. [2006] membuktikan bahwa MLP yang dilatih pada **harmonik per-orde** mencapai akurasi identifikasi perangkat yang jauh lebih tinggi dibandingkan THD (*Total Harmonic Distortion*) agregat. Zheng et al. [2018] secara eksperimental memverifikasi bahwa harmonik per-orde H3 dan H5 memiliki **sifat aditif yang baik** — penting untuk kondisi di mana beberapa perangkat beroperasi secara bersamaan.
+**H3 dan H5 — Harmonik Orde 3 dan 5:** Srinivasan et al. [2006] membuktikan bahwa MLP yang dilatih pada **harmonik per-orde** mencapai akurasi identifikasi perangkat yang jauh lebih tinggi dibandingkan THD (*Total Harmonic Distortion*) agregat. Zheng et al. [2018] secara eksperimental memverifikasi bahwa harmonik per-orde H3 dan H5 memiliki **sifat aditif yang baik**, penting untuk kondisi di mana beberapa perangkat beroperasi secara bersamaan.
 
-Alasan tidak menggunakan THD: dua perangkat dengan profil harmonik yang sangat berbeda dapat menghasilkan nilai THD yang identik.
+Awalnya penulis mencoba menggunakan THD agregat, namun karena beberapa referensi jurnal yang ada penulis mengubahnya dengan mencoba menambahkan tabel komparasi dari THD agregat dengan Harmonik Orde 3 dan 5. Beberapa alasan tidak menggunakan THD disebutkan dengan contoh dimana dua perangkat dengan profil harmonik yang sangat berbeda dapat menghasilkan nilai THD yang identik.
 
 | Perangkat | THD | H3 | H5 |
 |-----------|-----|----|----|
@@ -98,9 +85,43 @@ Alasan tidak menggunakan THD: dua perangkat dengan profil harmonik yang sangat b
 
 Dengan menggunakan THD, kedua perangkat ini tampak identik. Dengan H3 dan H5 secara terpisah, perbedaannya langsung terlihat jelas [Srinivasan et al., 2006].
 
-### Mengapa Hanya H3 dan H5, Tidak Sampai H9?
+### Harmonik Berorde: Konsep dan Mekanisme
 
-Keterbatasan hardware. ADS1115 pada 860 SPS memiliki bandwidth efektif ~430 Hz. Kotsilitis et al. [2023] menunjukkan bahwa frekuensi sampling **1–4 kHz** sudah mencukupi untuk deteksi event dan ekstraksi harmonik hingga orde tertentu. Namun dengan ADS1115 single-channel pada 860 SPS, batas Nyquist (~430 Hz) membuat H7 (350 Hz) berada di dekat batas dan H9 (450 Hz) melewatinya — menghasilkan nilai yang tidak reliabel akibat aliasing. Ekstraksi dibatasi pada H3 (150 Hz) dan H5 (250 Hz) yang dapat diukur secara akurat.
+Sinyal arus listrik ideal berbentuk gelombang sinusoidal murni pada frekuensi fundamental 50 Hz. Namun, perangkat elektronik modern — khususnya yang menggunakan komponen non-linear seperti dioda, kapasitor besar, dan rangkaian switching — menyebabkan bentuk gelombang arus menyimpang dari sinusoid murni. Penyimpangan ini tidak acak; secara matematis dapat diuraikan menjadi jumlahan sinusoid-sinusoid dengan frekuensi kelipatan bulat dari frekuensi fundamental, yang dikenal sebagai **deret Fourier**:
+
+$$i(t) = I_1\sin(\omega t + \phi_1) + I_3\sin(3\omega t + \phi_3) + I_5\sin(5\omega t + \phi_5) + \cdots$$
+
+Setiap suku dalam deret ini disebut **harmonik berorde** (*nth-order harmonic*):
+
+| Orde | Nama | Frekuensi (50 Hz sistem) | Sumber Umum |
+|------|------|--------------------------|-------------|
+| H1 | Fundamental | 50 Hz | Semua perangkat (komponen utama) |
+| H2 | Harmonik ke-2 | 100 Hz | Arcing, asimetri rangkaian |
+| H3 | Harmonik ke-3 | 150 Hz | Beban non-linear simetris (charger, lampu LED, motor) |
+| H5 | Harmonik ke-5 | 250 Hz | Rectifier 6-pulsa, drive motor, switching PSU |
+| H7 | Harmonik ke-7 | 350 Hz | Drive frekuensi variabel, UPS |
+| H9 | Harmonik ke-9 | 450 Hz | Transformator jenuh, beban tiga fase |
+
+**Mengapa harmonik ganjil (odd) dominan?** Untuk beban yang memiliki simetri setengah gelombang (*half-wave symmetry*) — yaitu bentuk gelombang bagian positif dan negatifnya identik — secara matematika hanya harmonik orde ganjil yang dapat eksis. Hampir semua perangkat elektronik rumah tangga memenuhi simetri ini, sehingga H2, H4, H6 (orde genap) nilainya mendekati nol dan tidak memberikan informasi pembeda yang berguna.
+
+**Amplitudo harmonik sebagai sidik jari perangkat.** Nilai $I_n$ (amplitudo orde ke-n) mencerminkan seberapa besar komponen frekuensi tersebut ada dalam arus yang ditarik perangkat. Setiap desain sirkuit internal menghasilkan "resep" amplitudo harmonik yang unik:
+
+- **Charger laptop switching (SMPS):** Kapasitor input besar mengambil arus hanya di puncak tegangan → H3 sangat tinggi (~26%), H5 sedang (~13%). Pola ini disebut *peaky current waveform*.
+- **Lampu LED dengan driver murah:** Rectifier sederhana tanpa power factor correction → H3 relatif rendah (~9%), H5 lebih tinggi (~21%). Distribusi antar-orde sangat berbeda dari charger.
+- **Motor induksi (kipas angin):** Beban hampir linear namun ada slip dan saturasi magnetik → H3 dan H5 ada namun kecil, Q (daya reaktif) menjadi fitur pembeda utama.
+- **Setrika resistif:** Elemen pemanas murni resistif → sinusoidal sempurna, H3 ≈ H5 ≈ 0%.
+
+**Sifat aditif harmonik berorde.** Saat beberapa perangkat menyala bersamaan, amplitudo harmonik total di panel utama adalah **penjumlahan vektor** dari kontribusi masing-masing perangkat (dengan mempertimbangkan sudut fase). Zheng et al. [2018] membuktikan secara eksperimental bahwa H3 dan H5 memiliki **sifat aditif yang cukup baik** untuk kondisi multi-perangkat, memungkinkan dekomposisi kontribusi individual dari sinyal agregat — properti yang tidak dimiliki fitur berbasis statistik temporal.
+
+**THD vs. Harmonik Per-Orde.** *Total Harmonic Distortion* (THD) merupakan agregasi semua harmonik menjadi satu angka:
+
+$$\text{THD} = \frac{\sqrt{I_3^2 + I_5^2 + I_7^2 + \cdots}}{I_1} \times 100\%$$
+
+Informasi distribusi antar orde hilang dalam proses penjumlahan ini. Dua perangkat dengan "resep" harmonik yang sangat berbeda dapat menghasilkan THD identik (seperti contoh tabel di atas: charger 29% vs. lampu LED 28%), sehingga THD tidak dapat membedakan keduanya. Inilah mengapa Srinivasan et al. [2006] merekomendasikan penggunaan harmonik per-orde sebagai fitur terpisah, bukan THD agregat.
+
+### Mengapa Hanya H3 dan H5 ?
+
+Asalannya adalah keterbatasan hardware, dimana penulis menggunakan sensor ADC (Analog Digital Converter) dengan tipe ADS1115 yang mampu mengambil sampai 860 SPS (sample per second), dan memiliki bandwidth efektif ~430 Hz. Kotsilitis et al. [2023] menunjukkan bahwa frekuensi sampling **1–4 kHz** sudah mencukupi untuk deteksi event dan ekstraksi harmonik hingga orde tertentu. Namun dengan ADS1115 single-channel pada 860 SPS, batas Nyquist (~430 Hz) membuat H7 (350 Hz) berada di dekat batas dan H9 (450 Hz) melewatinya — menghasilkan nilai yang tidak reliabel akibat aliasing. Oleh karenanya Ekstraksi fitur dibatasi pada H3 (150 Hz) dan H5 (250 Hz) yang dapat diukur secara akurat.
 
 ---
 
