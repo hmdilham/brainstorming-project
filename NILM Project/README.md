@@ -2,7 +2,10 @@
 
 > **Ide Penelitian :** Sistem NILM (Non Intrusive Load Monitoring) yang dapat mengenali status peralatan rumah tangga, dan beroperasi secara lokal di ESP32.
 
+![](assets/20260508_224011_UxJmC.jpg)
+
 ---
+
 ## Latar Belakang
 
 Konsumsi energi listrik rumah tangga merupakan salah satu komponen vital dalam kehidupan sehari-hari. Namun demikian, sebagian besar rumah tangga tidak memiliki visibilitas yang memadai terhadap pola konsumsi energi mereka. Tagihan listrik bulanan hanya memberikan angka total tanpa merinci perangkat mana yang paling boros, kapan konsumsi puncak terjadi, atau apakah ada pemborosan yang tidak disadari.
@@ -35,6 +38,8 @@ Sebagai contoh konkret:
 
 Penelitian di bidang NILM masih sangat aktif hingga saat ini. Zoha et al. [2012] mengklasifikasikan pendekatan NILM menjadi dua kelompok besar: **event-based** (deteksi peristiwa ketika nyala/mati nya alat elektronik) dan **state-based** (estimasi status perangkat secara kontinu). Untuk implementasi di perangkat *edge* dengan sumber daya terbatas, pendekatan event-based lebih dinilai efisien karena hanya membutuhkan komputasi saat ada perubahan beban [Kotsilitis & Marcoulaki, 2023].
 
+![](assets/20260508_224405_mauLt.jpg)
+
 ---
 
 ## Celah Penelitian: NILM dinilai Belum "Personal"
@@ -61,7 +66,10 @@ Mengacu pada konsep **self-adapting NILM**, daripada memerlukan ribuan data untu
 
 Proses ini disebut **onboarding**. Jia et al. [2024] membuktikan bahwa *prototype network* berbasis trajektori V-I mampu mengklasifikasikan perangkat NILM **tanpa perlu retraining** ketika kelas baru ditambahkan.
 
+![](assets/20260508_225913_nilm.png)
+
 ---
+
 ## Fitur yang Digunakan: Pendekatan Berbasis Fisika Kelistrikan
 
 Sebagian besar pendekatan FSL-NILM terkini berfokus pada representasi berbasis citra (trajektori V-I) atau sinyal mentah yang membutuhkan arsitektur neural network berat [Jia et al., 2024]. Pendekatan yang diusulkan di sini mengambil jalur berbeda: **mengekstraksi fitur yang secara fisika kelistrikan bermakna dan dapat diukur langsung**, lalu menerapkan FSL-KNN pada representasi yang jauh lebih ringan.
@@ -78,31 +86,36 @@ Sebagian besar pendekatan FSL-NILM terkini berfokus pada representasi berbasis c
 
 Awalnya penulis mencoba menggunakan THD agregat, namun karena beberapa referensi jurnal yang ada penulis mengubahnya dengan mencoba menambahkan tabel komparasi dari THD agregat dengan Harmonik Orde 3 dan 5. Beberapa alasan tidak menggunakan THD disebutkan dengan contoh dimana dua perangkat dengan profil harmonik yang sangat berbeda dapat menghasilkan nilai THD yang identik.
 
-| Perangkat | THD | H3 | H5 |
-|-----------|-----|----|----|
+
+| Perangkat                | THD | H3  | H5  |
+| -------------------------- | ----- | ----- | ----- |
 | Charger laptop switching | 29% | 26% | 13% |
-| Lampu LED (driver murah) | 28% | 9% | 21% |
+| Lampu LED (driver murah) | 28% | 9%  | 21% |
 
 Dengan menggunakan THD, kedua perangkat ini tampak identik. Dengan H3 dan H5 secara terpisah, perbedaannya langsung terlihat jelas [Srinivasan et al., 2006].
 
 ### Harmonik Berorde: Konsep dan Mekanisme
 
-Sinyal arus listrik ideal berbentuk gelombang sinusoidal murni pada frekuensi fundamental 50 Hz. Namun, perangkat elektronik modern — khususnya yang menggunakan komponen non-linear seperti dioda, kapasitor besar, dan rangkaian switching — menyebabkan bentuk gelombang arus menyimpang dari sinusoid murni. Penyimpangan ini tidak acak; secara matematis dapat diuraikan menjadi jumlahan sinusoid-sinusoid dengan frekuensi kelipatan bulat dari frekuensi fundamental, yang dikenal sebagai **deret Fourier**:
+Sinyal arus listrik ideal berbentuk gelombang sinusoidal murni pada frekuensi fundamental 50 Hz. Namun, perangkat elektronik modern khususnya yang menggunakan komponen non-linear seperti dioda, kapasitor, dan rangkaian switching menyebabkan bentuk gelombang arus menyimpang dari sinusoid murni. Penyimpangan ini tidak acak, secara matematis dapat diuraikan menjadi jumlahan sinusoid-sinusoid dengan frekuensi kelipatan bulat dari frekuensi fundamental, yang dikenal sebagai **deret Fourier**:
 
-$$i(t) = I_1\sin(\omega t + \phi_1) + I_3\sin(3\omega t + \phi_3) + I_5\sin(5\omega t + \phi_5) + \cdots$$
+$$
+i(t) = I_1\sin(\omega t + \phi_1) + I_3\sin(3\omega t + \phi_3) + I_5\sin(5\omega t + \phi_5) + \cdots
+
+$$
 
 Setiap suku dalam deret ini disebut **harmonik berorde** (*nth-order harmonic*):
 
-| Orde | Nama | Frekuensi (50 Hz sistem) | Sumber Umum |
-|------|------|--------------------------|-------------|
-| H1 | Fundamental | 50 Hz | Semua perangkat (komponen utama) |
-| H2 | Harmonik ke-2 | 100 Hz | Arcing, asimetri rangkaian |
-| H3 | Harmonik ke-3 | 150 Hz | Beban non-linear simetris (charger, lampu LED, motor) |
-| H5 | Harmonik ke-5 | 250 Hz | Rectifier 6-pulsa, drive motor, switching PSU |
-| H7 | Harmonik ke-7 | 350 Hz | Drive frekuensi variabel, UPS |
-| H9 | Harmonik ke-9 | 450 Hz | Transformator jenuh, beban tiga fase |
 
-**Mengapa harmonik ganjil (odd) dominan?** Untuk beban yang memiliki simetri setengah gelombang (*half-wave symmetry*) — yaitu bentuk gelombang bagian positif dan negatifnya identik — secara matematika hanya harmonik orde ganjil yang dapat eksis. Hampir semua perangkat elektronik rumah tangga memenuhi simetri ini, sehingga H2, H4, H6 (orde genap) nilainya mendekati nol dan tidak memberikan informasi pembeda yang berguna.
+| Orde | Nama          | Frekuensi (50 Hz sistem) | Sumber Umum                                           |
+| ------ | --------------- | -------------------------- | ------------------------------------------------------- |
+| H1   | Fundamental   | 50 Hz                    | Semua perangkat (komponen utama)                      |
+| H2   | Harmonik ke-2 | 100 Hz                   | Arcing, asimetri rangkaian                            |
+| H3   | Harmonik ke-3 | 150 Hz                   | Beban non-linear simetris (charger, lampu LED, motor) |
+| H5   | Harmonik ke-5 | 250 Hz                   | Rectifier 6-pulsa, drive motor, switching PSU         |
+| H7   | Harmonik ke-7 | 350 Hz                   | Drive frekuensi variabel, UPS                         |
+| H9   | Harmonik ke-9 | 450 Hz                   | Transformator jenuh, beban tiga fase                  |
+
+**Mengapa harmonik ganjil (odd) dominan?** Untuk beban yang memiliki simetri setengah gelombang (*half-wave symmetry*), yaitu bentuk gelombang bagian positif dan negatifnya identik secara matematika hanya harmonik orde ganjil yang dapat eksis. Hampir semua perangkat elektronik rumah tangga memenuhi simetri ini, sehingga H2, H4, H6 (orde genap) nilainya mendekati nol dan tidak memberikan informasi pembeda yang berguna.
 
 **Amplitudo harmonik sebagai sidik jari perangkat.** Nilai $I_n$ (amplitudo orde ke-n) mencerminkan seberapa besar komponen frekuensi tersebut ada dalam arus yang ditarik perangkat. Setiap desain sirkuit internal menghasilkan "resep" amplitudo harmonik yang unik:
 
@@ -115,7 +128,9 @@ Setiap suku dalam deret ini disebut **harmonik berorde** (*nth-order harmonic*):
 
 **THD vs. Harmonik Per-Orde.** *Total Harmonic Distortion* (THD) merupakan agregasi semua harmonik menjadi satu angka:
 
-$$\text{THD} = \frac{\sqrt{I_3^2 + I_5^2 + I_7^2 + \cdots}}{I_1} \times 100\%$$
+$$
+\text{THD} = \frac{\sqrt{I_3^2 + I_5^2 + I_7^2 + \cdots}}{I_1} \times 100\%
+$$
 
 Informasi distribusi antar orde hilang dalam proses penjumlahan ini. Dua perangkat dengan "resep" harmonik yang sangat berbeda dapat menghasilkan THD identik (seperti contoh tabel di atas: charger 29% vs. lampu LED 28%), sehingga THD tidak dapat membedakan keduanya. Inilah mengapa Srinivasan et al. [2006] merekomendasikan penggunaan harmonik per-orde sebagai fitur terpisah, bukan THD agregat.
 
@@ -129,47 +144,48 @@ Asalannya adalah keterbatasan hardware, dimana penulis menggunakan sensor ADC (A
 
 Total biaya prototipe sekitar **Rp246.000**. Da Costa Filho et al. [2025] membuktikan kelayakan deployment model MLP dan KNN langsung pada ESP32 untuk klasifikasi beban IoT, menegaskan bahwa ESP32 mampu menjalankan inferensi NILM ringan secara real-time — dengan catatan ADC presisi eksternal digunakan untuk akuisisi sinyal.
 
-| Komponen | Harga Estimasi |
-|----------|----------------|
-| ESP32 DevKit V1 | Rp 45.000 |
-| ADS1115 (2 buah) | Rp 50.000 |
-| HSTS016L — sensor arus Hall Effect | Rp 95.000 |
-| ZMPT101B — sensor tegangan | Rp 25.000 |
-| Komponen pendukung | Rp 31.200 |
 
-**Mengapa dua unit ADS1115?** Satu chip ADC hanya dapat mengukur satu channel per konversi (~1,2 ms). Dengan dua chip pada alamat I2C berbeda, tegangan dan arus dapat diukur **secara bersamaan** pada 860 sampel/detik masing-masing — akurasi ekstraksi harmonik via algoritma Goertzel menjadi jauh lebih baik [Kotsilitis et al., 2023].
+| Komponen                            | Harga Estimasi |
+| ------------------------------------- | ---------------- |
+| ESP32 DevKit V1                     | Rp 45.000      |
+| ADS1115 (2 buah)                    | Rp 50.000      |
+| HSTS016L — sensor arus Hall Effect | Rp 95.000      |
+| ZMPT101B — sensor tegangan         | Rp 25.000      |
+| Komponen pendukung                  | Rp 31.200      |
+
+**Mengapa dua unit ADS1115?** Satu chip ADC hanya dapat mengukur satu channel per konversi (~1,2 ms). Dengan dua chip pada alamat I2C berbeda, tegangan dan arus dapat diukur **secara bersamaan** pada 860 sampel/detik masing-masing akurasi ekstraksi harmonik via algoritma Goertzel menjadi jauh lebih baik [Kotsilitis et al., 2023].
 
 **Mengapa ADS1115 dan bukan ADC internal ESP32?** ADC internal ESP32 (12-bit) dikenal sangat *noisy* dan non-linear, terutama ketika digunakan bersama Wi-Fi aktif. Noise ADC internal dapat mencapai ±30 LSB, yang lebih besar dari amplitudo harmonik H3/H5 yang ingin diukur. ADS1115 (16-bit, SNR ~86 dB) menjadi komponen wajib [da Costa Filho et al., 2025].
 
-**Mengapa HSTS016L dan bukan SCT-013 yang lebih umum?** SCT-013 adalah *current transformer* berbasis induksi elektromagnetik dengan bandwidth 50 Hz–1 kHz. HSTS016L menggunakan prinsip efek Hall secara langsung dengan bandwidth flat DC–25 kHz, phase error mendekati nol di seluruh band harmonik, dan response time ≤5 µs untuk inrush detection [Kotsilitis & Marcoulaki, 2023]. SCT-013 tetap dapat digunakan sebagai fallback budget dengan konsekuensi akurasi H3/H5 yang berkurang.
-
 ---
 
-## Arsitektur Sistem: Tiga Tingkatan
+## Arsitektur Sistem
 
-Sistem ini dirancang secara modular — dapat dimulai dari tingkatan paling sederhana dan ditingkatkan sesuai kebutuhan. Hierarki ini mengacu pada framework tiga tier yang dikembangkan berdasarkan literatur terkait [Ferraz et al., 2022; Jia et al., 2024].
+Sistem ini dirancang secara sederhana namun dapat ditingkatkan sesuai kebutuhan. Hierarki ini mengacu pada framework tiga tier yang dikembangkan berdasarkan literatur terkait [Ferraz et al., 2022; Jia et al., 2024].
 
-### Tier 1 — KNN Langsung (Tanpa Model)
+### Tier 1 — KNN Langsung
 
-Tidak memerlukan model machine learning sama sekali. Support set di Flash menyimpan langsung vektor `Φ` yang direkam saat onboarding. Inferensi dilakukan dengan menghitung jarak Euclidean ke semua contoh tersimpan, mengambil 3 tetangga terdekat, dan melakukan majority vote. Khan et al. [2019] memvalidasi pendekatan KNN (K=5) untuk NILM; da Costa Filho et al. [2025] mengkonfirmasi kelayakan deployment langsung di ESP32.
+Merupakan pilihan utama penelitian. Sistem ini tidak memerlukan model machine learning sama sekali. Support set di Flash menyimpan langsung vektor `Φ` yang direkam saat onboarding. Inferensi dilakukan dengan menghitung jarak Euclidean ke semua contoh tersimpan, mengambil 3 tetangga terdekat, dan melakukan majority vote. Khan et al. [2019] memvalidasi pendekatan KNN (K=5) untuk NILM; da Costa Filho et al. [2025] mengkonfirmasi kelayakan deployment langsung di ESP32.
 
-| Parameter | Nilai |
-|-----------|-------|
-| Ukuran model | 0 KB |
-| RAM saat inferensi | < 1 KB |
-| Waktu inferensi | < 1 ms |
-| Estimasi akurasi | 75–82% |
 
-### Tier 2 — MLP Encoder + KNN (Direkomendasikan)
+| Parameter          | Nilai   |
+| -------------------- | --------- |
+| Ukuran model       | 0 KB    |
+| RAM saat inferensi | < 1 KB  |
+| Waktu inferensi    | < 1 ms  |
+| Estimasi akurasi   | 75–82% |
 
-Encoder MLP berukuran kecil (~400 parameter, ~1,6 KB setelah kuantisasi INT8) dilatih secara *offline* di laptop menggunakan dataset NILM publik. Proses pelatihan menggunakan *episodic meta-learning* — secara prinsip identik dengan Prototype Networks dalam literatur few-shot learning. Chen et al. [2022] membuktikan bahwa pendekatan pre-training + few-shot fine-tuning menghasilkan transferabilitas yang superior dibandingkan deep learning konvensional pada dataset REDD dan UK-DALE. Model di-deploy ke ESP32, dan KNN beroperasi di ruang embedding yang lebih diskriminatif.
+### Tier 2 — MLP Encoder + KNN
 
-| Parameter | Nilai |
-|-----------|-------|
-| Ukuran model | ~3 KB |
-| RAM saat inferensi | < 5 KB |
-| Waktu inferensi | < 3 ms |
-| Estimasi akurasi | 82–88% |
+Merupakan model alternatif yang dipilih, dengan menambahkan Encoder MLP berukuran kecil (~400 parameter, ~1,6 KB setelah kuantisasi INT8) yang dilatih secara *offline* di laptop menggunakan dataset NILM publik. Proses pelatihan menggunakan *episodic meta-learning* secara prinsip identik dengan Prototype Networks dalam literatur few-shot learning. Chen et al. [2022] membuktikan bahwa pendekatan pre-training + few-shot fine-tuning menghasilkan transferabilitas yang superior dibandingkan deep learning konvensional pada dataset REDD dan UK-DALE. Model di-deploy ke ESP32, dan KNN beroperasi di ruang embedding yang lebih diskriminatif.
+
+
+| Parameter          | Nilai   |
+| -------------------- | --------- |
+| Ukuran model       | ~3 KB   |
+| RAM saat inferensi | < 5 KB  |
+| Waktu inferensi    | < 3 ms  |
+| Estimasi akurasi   | 82–88% |
 
 Ini merupakan **novelty utama** dari penelitian ini: encoder yang 50–100 kali lebih kecil dibandingkan CNN berbasis trajektori V-I pada Jia et al. [2024], namun sudah cukup untuk meningkatkan akurasi secara signifikan.
 
@@ -177,18 +193,19 @@ Ini merupakan **novelty utama** dari penelitian ini: encoder yang 50–100 kali 
 
 Ferraz et al. [2022] mengvalidasi arsitektur Siamese CNN + KNN untuk NILM berbasis citra V-I — pendekatan ini bekerja dengan baik bahkan dengan sangat sedikit contoh per kelas. Tier 3 mengadaptasi prinsip yang sama pada fitur fisika, dengan jaringan Siamese dilatih untuk mempelajari fungsi kemiripan antar pasang sinyal.
 
-| Parameter | Nilai |
-|-----------|-------|
-| Ukuran model | ~20–50 KB |
-| RAM saat inferensi | < 10 KB |
-| Waktu inferensi | ~10–30 ms |
-| Estimasi akurasi | 85–92% |
+
+| Parameter          | Nilai      |
+| -------------------- | ------------ |
+| Ukuran model       | ~20–50 KB |
+| RAM saat inferensi | < 10 KB    |
+| Waktu inferensi    | ~10–30 ms |
+| Estimasi akurasi   | 85–92%    |
 
 ---
 
 ## Tantangan yang Telah Diantisipasi
 
-**"Simultaneous Turn-On Problem"** — Ketika listrik PLN kembali menyala setelah padam, semua perangkat dapat menyala bersamaan. Sinyal transien saling bertumpang tindih sehingga tidak memungkinkan identifikasi individual secara real-time. Solusinya: sistem menunggu kondisi steady-state tercapai, kemudian mencari kombinasi perangkat yang jumlah daya aktifnya sesuai dengan total terukur. Ini adalah *state re-synchronization*, bukan identifikasi real-time — dan merupakan *limitation* yang perlu diakui dalam laporan penelitian [Zoha et al., 2012].
+**"Simultaneous Turn-On Problem"** — Ketika listrik PLN kembali menyala setelah padam, semua perangkat dapat menyala bersamaan. Sinyal transien saling bertumpang tindih sehingga tidak memungkinkan identifikasi individual secara real-time. Solusinya: sistem menunggu kondisi steady-state tercapai, kemudian mencari kombinasi perangkat yang jumlah daya aktifnya sesuai dengan total daya terukur. Ini adalah *state re-synchronization*, bukan identifikasi real-time dan merupakan *limitation* yang perlu diakui dalam laporan penelitian [Zoha et al., 2012].
 
 **"Identical Signature Problem"** — Dua kipas angin dengan merek dan seri yang sama akan menghasilkan feature vector yang hampir identik dari satu titik pengukuran. Secara fisika, keduanya memang tidak dapat dibedakan dari satu titik ukur [Zoha et al., 2012]. Sistem akan mengelompokkan keduanya ke dalam satu grup ("Kipas Angin Miyako — 2 unit aktif"). Ini merupakan keterbatasan yang disadari dan harus didokumentasikan sebagai *limitation*.
 
@@ -202,26 +219,9 @@ Ferraz et al. [2022] mengvalidasi arsitektur Siamese CNN + KNN untuk NILM berbas
 
 ## Mekanisme Onboarding dan Active Learning
 
-Ketika terjadi event yang tidak dapat diidentifikasi, sistem menampilkan notifikasi "Uncategorized Load" pada dashboard beserta estimasi daya. Pengguna dapat memberi label, dan vektor fitur tersebut langsung ditambahkan ke support set — tanpa retraining, tanpa gradient descent. Li et al. [2024] membuktikan bahwa model NILM dapat terus meningkat performanya dari data tidak berlabel pasca-onboarding (semi-supervised learning) — prinsip serupa yang diterapkan di sini melalui mekanisme active learning berbasis konfirmasi pengguna.
+Ketika terjadi event yang tidak dapat diidentifikasi, sistem menampilkan notifikasi "Uncategorized Load" pada dashboard beserta estimasi daya. Pengguna dapat memberi label, dan vektor fitur tersebut langsung ditambahkan ke support set tanpa retraining, tanpa gradient descent. Li et al. [2024] membuktikan bahwa model NILM dapat terus meningkat performanya dari data tidak berlabel pasca-onboarding (semi-supervised learning) prinsip serupa yang diterapkan di sini melalui mekanisme active learning berbasis konfirmasi pengguna.
 
----
-
-## Peta Jalan Implementasi
-
-```
-Phase 0: Persiapan hardware dan wiring            ~1 minggu
-Phase 1: Akuisisi sinyal yang bersih              ~1 minggu
-Phase 2: Feature extraction dan validasi          ~1 minggu
-Phase 3: KNN + threshold + penyimpanan Flash      ~1 minggu
-Phase 4: Pengukuran akurasi dan pengumpulan data  ~1 minggu
-Phase 5: MLP Encoder — Tier 2                     ~2 minggu
-Phase 6: Dashboard dan integrasi MQTT             ~1 minggu
-──────────────────────────────────────────────────────────
-Total:                                            ~8–9 minggu
-```
-
-Setiap fase memiliki kriteria go/no-go sebelum melanjutkan ke fase berikutnya. Nieto et al. [2026] mendemonstrasikan pendekatan serupa pada arsitektur SoC FPGA untuk NILM dengan latensi inferensi 56 ms dan akurasi 84,7% untuk 14 kelas — membuktikan kelayakan inferensi NILM di perangkat keras yang bahkan lebih terbatas dari ESP32.
-
+  ![alt](assets/20260508_230206_few_shot.png)
 ---
 
 ## Signifikansi dan Posisi terhadap Literatur
@@ -229,6 +229,7 @@ Setiap fase memiliki kriteria go/no-go sebelum melanjutkan ke fase berikutnya. N
 Jia et al. [2024] adalah representasi terkini dari pendekatan V-I trajectory + FSL yang mencapai akurasi 90–95%, namun memerlukan sampling rate >10 kHz dan model CNN berukuran 80–200 KB. Ferraz et al. [2022] memvalidasi Siamese CNN + KNN pada NILM berbasis citra dengan hasil lebih dari 90% akurasi. Pendekatan yang diusulkan dalam penelitian ini mengambil jalur yang berbeda: fitur fisika yang sederhana namun bermakna, model yang sangat kecil, dan hardware yang terjangkau. Trade-off akurasi (75–88% vs. 90–95%) ditukar dengan **feasibility nyata** pada perangkat edge berbiaya rendah [da Costa Filho et al., 2025; Warden & Situnayake, 2019].
 
 Pertanyaan penelitian yang perlu dijawab melalui eksperimen:
+
 - Apakah 5 dimensi fitur fisika sudah cukup separable untuk perangkat rumah tangga yang umum di Indonesia? (Srinivasan et al. [2006] menunjukkan hal ini pada kondisi grid Singapura; validasi pada 220V/50Hz Indonesia diperlukan.)
 - Berapa peningkatan akurasi dari Tier 1 ke Tier 2? Apakah encoder MLP 400 parameter memberikan nilai tambah yang signifikan dibanding hasil Chen et al. [2022]?
 - Bagaimana performa sistem pada kondisi multi-beban? Zheng et al. [2018] memverifikasi sifat aditif harmonik sebagai landasan teoritis, namun validasi eksperimental lokal tetap diperlukan.
