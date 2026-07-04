@@ -1,0 +1,29 @@
+name: NILM Simulation
+
+on:
+  push:
+    paths:
+      - "NILM Project/simulation/**"
+  workflow_dispatch: {}
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install numpy
+
+      - name: Run NILM KNN simulation
+        run: |
+          {
+            echo '## Hasil Simulasi NILM (KNN Tier-1 + Goertzel)'
+            echo '```'
+            python "NILM Project/simulation/nilm_knn_simulation.py"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
