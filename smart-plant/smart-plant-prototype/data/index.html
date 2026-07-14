@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Plant</title>
+<style>
+*,::before,::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* ── Pagi Kebun Palette ─────────────────────────────────────
+     Daun segar · Matahari pagi · Bunga taman · Langit cerah   */
+
+  /* Backgrounds */
+  --bg:    #eef7e6;           /* embun pagi di rerumputan  */
+  --s1:    #ffffff;           /* permukaan kartu           */
+  --s2:    #f3faf0;           /* input / secondary surface */
+  --bd:    #b8d4a8;           /* border daun sage          */
+
+  /* Typography */
+  --t:     #1c3a28;           /* teks utama — hutan dalam  */
+  --t2:    #4a7258;           /* teks sekunder — daun tua  */
+  --t3:    #7a9e84;           /* teks muted — kabut kebun  */
+
+  /* Leaf — warna daun segar */
+  --leaf:   #22a852;
+  --leaf-d: #187a3c;
+  --leaf-l: #dff5e8;
+
+  /* Sun — matahari pagi keemasan */
+  --sun:    #c87e08;          /* kontras cukup di putih    */
+  --sun-arc:#f0a020;          /* arc lebih cerah di SVG    */
+  --sun-l:  #fff3d0;
+
+  /* Flower — bunga merah muda taman */
+  --flower:   #c44070;
+  --flower-l: #fce5ee;
+
+  /* Sky — langit pagi */
+  --sky:    #1870b4;          /* kontras cukup di putih    */
+  --sky-arc:#3498db;          /* arc lebih cerah di SVG    */
+  --sky-l:  #dff0fb;
+
+  /* Earth — tanah / batang pohon */
+  --earth:  #7a5230;
+
+  --r: 14px;
+  --shadow: 0 2px 14px rgba(20,70,35,.09);
+}
+
+html{font-size:15px;-webkit-text-size-adjust:100%}
+body{
+  min-height:100vh;padding:14px;
+  max-width:960px;margin:0 auto;
+  color:var(--t);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  /* Latar: embun pagi + semburat matahari + rimbunnya tanaman */
+  background:
+    radial-gradient(ellipse at 8%   0%, rgba(240,160,32,.14) 0%, transparent 38%),
+    radial-gradient(ellipse at 92% 100%, rgba(34,168,82,.10) 0%, transparent 40%),
+    radial-gradient(ellipse at 50%  50%, rgba(255,255,255,.5) 0%, transparent 70%),
+    linear-gradient(160deg, #f0faeb 0%, #e8f5df 50%, #edfae6 100%);
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 0 20px;gap:12px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{font-size:1.8rem;line-height:1;filter:drop-shadow(0 2px 4px rgba(20,100,40,.2))}
+.logo-name{font-size:1.12rem;font-weight:800;letter-spacing:-.02em;color:var(--t)}
+.logo-sub {font-size:.7rem;color:var(--t3);margin-top:1px;font-weight:500}
+.ws-pill{
+  display:flex;align-items:center;gap:7px;font-size:.75rem;font-weight:600;
+  white-space:nowrap;padding:6px 13px;border-radius:20px;
+  background:#fff;border:1.5px solid var(--bd);transition:all .4s;
+  box-shadow:0 1px 6px rgba(20,70,35,.08);
+}
+.ws-pill.ok  {border-color:rgba(34,168,82,.55);color:var(--leaf-d);background:var(--leaf-l)}
+.ws-pill.warn{border-color:rgba(240,160,32,.55);color:var(--sun);background:var(--sun-l)}
+.ws-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.ws-dot.blink{animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── Grid / Card ─────────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.span2{grid-column:1/-1}
+.card{
+  background:var(--s1);
+  border:1.5px solid var(--bd);
+  border-radius:var(--r);
+  padding:18px 20px;
+  box-shadow:var(--shadow);
+  position:relative;
+  /* Garis atas tipis — seperti sinar matahari menembus daun */
+  border-top:3px solid transparent;
+  background-clip:padding-box;
+}
+/* Aksen garis atas per kartu */
+.card::before{
+  content:'';position:absolute;inset:-3px -1.5px auto;
+  height:3px;border-radius:var(--r) var(--r) 0 0;
+  background:linear-gradient(90deg,var(--leaf),var(--sun-arc),var(--leaf));
+  opacity:.55;
+}
+.card-title{
+  font-size:.7rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--t2);margin-bottom:16px;
+  display:flex;align-items:center;gap:6px;
+}
+/* Daun kecil sebelum judul kartu */
+.card-title::before{content:'🌿';font-size:.85rem;opacity:.7}
+
+/* ── Gauge ───────────────────────────────────────────────────── */
+.gauge-wrap{display:flex;justify-content:center;padding:6px 0 12px}
+.gauge{width:min(168px,82%)}
+#gArc{transition:stroke-dashoffset .9s cubic-bezier(.4,0,.2,1),stroke .55s ease}
+.gauge-label{text-align:center}
+.gauge-desc{font-size:.78rem;color:var(--t2);margin-top:6px;font-weight:500}
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:800;
+  letter-spacing:.04em;margin-top:8px;border:1.5px solid;
+}
+.badge-dry{background:var(--sun-l);color:var(--sun);border-color:rgba(240,160,32,.4)}
+.badge-ok {background:var(--leaf-l);color:var(--leaf-d);border-color:rgba(34,168,82,.4)}
+.badge-wet{background:var(--sky-l);color:var(--sky);border-color:rgba(52,152,219,.4)}
+
+/* ── Pump Card ───────────────────────────────────────────────── */
+.pump-state{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px}
+.state-dot{
+  width:12px;height:12px;border-radius:50%;flex-shrink:0;
+  margin-top:3px;transition:background .4s;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+}
+.state-dot.idle    {background:#b0c8b8}
+.state-dot.watering{background:var(--leaf);animation:rplt 1.4s infinite}
+.state-dot.cooldown{background:var(--sun-arc)}
+.state-dot.manual  {background:var(--sky-arc);animation:rplb 1.2s infinite}
+@keyframes rplt{0%{box-shadow:0 0 0 0 rgba(34,168,82,.55)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes rplb{0%{box-shadow:0 0 0 0 rgba(52,152,219,.55)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.state-name{font-size:.95rem;font-weight:800;color:var(--t)}
+.state-sub {font-size:.73rem;color:var(--t2);margin-top:2px;font-weight:500}
+.divider{height:1px;background:var(--bd);opacity:.5;margin:14px 0}
+.sec-label{font-size:.68rem;color:var(--t3);font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+
+/* Duration & Buttons */
+.dur-row{display:flex;gap:6px;margin-bottom:12px}
+.dur-btn{
+  flex:1;padding:7px 2px;font-size:.73rem;font-weight:600;
+  background:var(--s2);border:1.5px solid var(--bd);color:var(--t2);
+  border-radius:8px;cursor:pointer;transition:all .2s;font-family:inherit;
+}
+.dur-btn.sel{
+  background:var(--leaf-l);border-color:rgba(34,168,82,.6);
+  color:var(--leaf-d);font-weight:800;
+  box-shadow:0 2px 8px rgba(34,168,82,.15);
+}
+.dur-btn:hover:not(.sel){background:#ecf5e8;border-color:#a0c890;color:var(--t)}
+.btn-row{display:flex;gap:8px}
+.btn{
+  padding:11px 0;border:none;border-radius:9px;font-size:.85rem;font-weight:800;
+  cursor:pointer;flex:1;font-family:inherit;transition:all .18s;letter-spacing:.01em;
+}
+.btn:active{transform:scale(.96)}
+.btn-on{
+  background:linear-gradient(135deg,#27c464,#18904a);
+  color:#fff;box-shadow:0 3px 12px rgba(34,168,82,.35);
+}
+.btn-on:hover:not(:disabled){background:linear-gradient(135deg,#35d472,#22a852);box-shadow:0 4px 16px rgba(34,168,82,.45)}
+.btn-on:disabled{background:#c8e0c8;color:#8aaa8a;cursor:not-allowed;box-shadow:none}
+.btn-off{
+  background:var(--flower-l);color:var(--flower);
+  border:1.5px solid rgba(196,64,112,.35);
+}
+.btn-off:hover:not(:disabled){background:#f8d4e2;border-color:rgba(196,64,112,.55)}
+.btn-off:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Chart ───────────────────────────────────────────────────── */
+.chart-wrap{margin:2px 0 8px;border-radius:9px;overflow:hidden;border:1px solid var(--bd)}
+#chart{width:100%;display:block}
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.68rem;color:var(--t3);margin-top:10px}
+.leg{display:flex;align-items:center;gap:5px;font-weight:500}
+.leg-line{width:18px;height:2.5px;border-radius:2px}
+.leg-dash{width:18px;border-bottom:2px dashed currentColor;height:0}
+
+/* ── DHT22 Suhu & Kelembapan ─────────────────────────────────── */
+.dht-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 0 2px}
+.dht-item{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:14px 10px;background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;
+  transition:all .3s;
+}
+.dht-item.warm{background:var(--sun-l);border-color:rgba(240,160,32,.4)}
+.dht-item.cool{background:var(--sky-l);border-color:rgba(52,152,219,.4)}
+.dht-item.humid{background:var(--leaf-l);border-color:rgba(34,168,82,.4)}
+.dht-icon{font-size:1.4rem;margin-bottom:4px;line-height:1}
+.dht-val{font-size:1.85rem;font-weight:800;color:var(--t);line-height:1.1;letter-spacing:-.02em}
+.dht-val-sm{font-size:.85rem;color:var(--t2);font-weight:700;margin-left:1px}
+.dht-label{font-size:.66rem;color:var(--t3);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:8px}
+.dht-status{
+  font-size:.72rem;color:var(--flower);font-weight:600;text-align:center;
+  margin-top:10px;padding:8px;background:var(--flower-l);border-radius:8px;
+  border:1px solid rgba(196,64,112,.25);
+}
+
+/* ── Status Chips ────────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px}
+.stat{
+  display:flex;align-items:center;gap:10px;padding:11px 13px;
+  background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;
+  transition:all .3s;box-shadow:0 1px 4px rgba(20,70,35,.05);
+}
+.stat.ok {background:var(--leaf-l);border-color:rgba(34,168,82,.35)}
+.stat.err{background:var(--flower-l);border-color:rgba(196,64,112,.3)}
+.stat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:background .4s}
+.stat-dot.ok  {background:var(--leaf)}
+.stat-dot.err {background:var(--flower)}
+.stat-dot.info{background:var(--sky-arc)}
+.stat-dot.warn{background:var(--sun-arc)}
+.stat-label{font-size:.67rem;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.stat-val  {font-size:.82rem;font-weight:700;margin-top:2px;word-break:break-all;line-height:1.3;color:var(--t)}
+
+/* ── Config Accordion ────────────────────────────────────────── */
+.accord-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:2px 0}
+.accord-head:hover .card-title{color:var(--t)}
+.accord-arrow{font-size:.85rem;color:var(--leaf);transition:transform .3s;line-height:1;font-weight:700}
+.accord-arrow.open{transform:rotate(180deg)}
+.accord-body{margin-top:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:18px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:.7rem;color:var(--t2);font-weight:700}
+.fg input{
+  background:var(--s2);border:1.5px solid var(--bd);color:var(--t);
+  border-radius:8px;padding:8px 10px;font-size:.82rem;
+  font-family:inherit;width:100%;outline:none;transition:all .2s;
+}
+.fg input:focus{border-color:var(--leaf);background:#fff;box-shadow:0 0 0 3px rgba(34,168,82,.12)}
+.form-foot{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.btn-save{
+  padding:10px 24px;
+  background:linear-gradient(135deg,#27c464,#18904a);
+  color:#fff;border:none;border-radius:9px;font-size:.85rem;font-weight:800;
+  cursor:pointer;font-family:inherit;transition:all .18s;
+  box-shadow:0 3px 12px rgba(34,168,82,.3);
+}
+.btn-save:hover{background:linear-gradient(135deg,#35d472,#22a852)}
+.form-note{font-size:.7rem;color:var(--t3);font-weight:500}
+
+/* ── Toasts ──────────────────────────────────────────────────── */
+#toasts{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
+.toast{
+  padding:10px 16px;border-radius:10px;font-size:.8rem;font-weight:600;
+  max-width:280px;opacity:0;transform:translateX(16px);
+  transition:opacity .3s,transform .3s;
+  border-left:3px solid;box-shadow:0 4px 16px rgba(0,0,0,.12);
+}
+.toast.show{opacity:1;transform:none}
+.toast.ok  {background:#f0fbf4;border-color:var(--leaf);color:var(--leaf-d)}
+.toast.err {background:var(--flower-l);border-color:var(--flower);color:#9e2855}
+.toast.info{background:var(--sky-l);border-color:var(--sky-arc);color:var(--sky)}
+.toast.warn{background:var(--sun-l);border-color:var(--sun-arc);color:var(--sun)}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media(max-width:540px){
+  .grid{grid-template-columns:1fr}
+  .span2{grid-column:auto}
+  .form-grid{grid-template-columns:1fr}
+  .dur-btn{font-size:.68rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <span class="logo-icon">🌱</span>
+    <div>
+      <div class="logo-name">Smart Plant</div>
+      <div class="logo-sub" id="verLabel">Prototype · Pagi Kebun</div>
+    </div>
+  </div>
+  <div class="ws-pill warn" id="wsPill">
+    <div class="ws-dot blink" id="wsDot"></div>
+    <span id="wsLabel">Menghubungkan...</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- ── Kelembaban Tanah ── -->
+  <div class="card">
+    <div class="card-title">Kelembaban Tanah</div>
+    <div class="gauge-wrap">
+      <svg class="gauge" viewBox="0 0 200 200">
+        <!-- latar lingkaran dalam SVG: warna tanah lembab -->
+        <circle cx="100" cy="100" r="80" fill="#f5fbf2"/>
+        <!-- track cincin -->
+        <circle cx="100" cy="100" r="80" fill="none" stroke="#cce8c0" stroke-width="14"/>
+        <!-- arc kelembaban -->
+        <circle id="gArc" cx="100" cy="100" r="80" fill="none"
+                stroke="#22a852" stroke-width="14" stroke-linecap="round"
+                stroke-dasharray="503" stroke-dashoffset="503"
+                transform="rotate(-90 100 100)"/>
+        <!-- nilai -->
+        <text id="gVal" x="100" y="106" text-anchor="middle" font-size="50" font-weight="800"
+              fill="#1c3a28" font-family="-apple-system,BlinkMacSystemFont,sans-serif">--</text>
+        <text x="100" y="126" text-anchor="middle" font-size="13" fill="#7a9e84"
+              font-family="-apple-system,BlinkMacSystemFont,sans-serif">persen</text>
+      </svg>
+    </div>
+    <div style="text-align:center">
+      <div class="gauge-desc" id="soilDesc">Menunggu data sensor...</div>
+      <div><span class="badge badge-ok" id="soilBadge" style="display:none">—</span></div>
+    </div>
+    <div class="dht-status" id="soilStatus" style="display:none">&#9888; Sensor tanah terputus &mdash; cek wiring A0</div>
+  </div>
+
+  <!-- ── Kontrol Pompa ── -->
+  <div class="card">
+    <div class="card-title">Kontrol Pompa</div>
+    <div class="pump-state">
+      <div class="state-dot idle" id="stateDot"></div>
+      <div>
+        <div class="state-name" id="stateName">Siaga</div>
+        <div class="state-sub"  id="stateSub">Menunggu data sensor...</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec-label">Durasi Manual</div>
+    <div class="dur-row">
+      <button class="dur-btn sel" onclick="setDur(this,5000)"> 5 dtk</button>
+      <button class="dur-btn"     onclick="setDur(this,10000)">10 dtk</button>
+      <button class="dur-btn"     onclick="setDur(this,15000)">15 dtk</button>
+      <button class="dur-btn"     onclick="setDur(this,20000)">20 dtk</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-on"  id="btnOn"  onclick="pumpOn()">&#9654; Nyalakan</button>
+      <button class="btn btn-off" id="btnOff" onclick="pumpOff()" disabled>&#9632; Matikan</button>
+    </div>
+  </div>
+
+  <!-- ── Suhu & Kelembapan Udara (DHT22) ── -->
+  <div class="card span2">
+    <div class="card-title">Suhu &amp; Kelembapan Udara</div>
+    <div class="dht-row">
+      <div class="dht-item" id="dhtTempBox">
+        <div class="dht-icon">&#x1F321;&#xFE0F;</div>
+        <div><span class="dht-val" id="tempVal">--</span><span class="dht-val-sm">&#xB0;C</span></div>
+        <div class="dht-label">Suhu</div>
+      </div>
+      <div class="dht-item" id="dhtHumBox">
+        <div class="dht-icon">&#x1F4A7;</div>
+        <div><span class="dht-val" id="humVal">--</span><span class="dht-val-sm">%</span></div>
+        <div class="dht-label">Kelembapan Udara</div>
+      </div>
+    </div>
+    <div class="dht-status" id="dhtStatus" style="display:none">&#9888; Sensor DHT22 tidak merespons &mdash; cek wiring pin D6</div>
+  </div>
+
+  <!-- ── Riwayat Kelembaban ── -->
+  <div class="card span2">
+    <div class="card-title">
+      Riwayat Kelembaban
+      <span id="histCount" style="color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;font-size:.7rem"> &mdash; 0 data</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart" height="88"></canvas>
+    </div>
+    <div class="chart-legend">
+      <div class="leg"><div class="leg-line" style="background:var(--leaf)"></div>Kelembaban</div>
+      <div class="leg"><div class="leg-dash" style="color:var(--sun-arc)"></div>Batas Kering</div>
+      <div class="leg"><div class="leg-dash" style="color:var(--sky-arc)"></div>Batas Basah</div>
+    </div>
+  </div>
+
+  <!-- ── Status Sistem ── -->
+  <div class="card span2">
+    <div class="card-title">Status Sistem</div>
+    <div class="stat-grid">
+      <div class="stat ok">
+        <div class="stat-dot ok"></div>
+        <div><div class="stat-label">WiFi</div><div class="stat-val">Terhubung</div></div>
+      </div>
+      <div class="stat" id="statMqtt">
+        <div class="stat-dot warn" id="mqttDot"></div>
+        <div><div class="stat-label">MQTT Broker</div><div class="stat-val" id="mqttVal">—</div></div>
+      </div>
+      <div class="stat">
+        <div class="stat-dot info"></div>
+        <div><div class="stat-label">IP Address</div><div class="stat-val" id="ipVal">—</div></div>
+      </div>
+      <div class="stat">
+        <div class="stat-dot info"></div>
+        <div><div class="stat-label">Uptime</div><div class="stat-val" id="uptimeVal">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Konfigurasi ── -->
+  <div class="card span2">
+    <div class="accord-head" id="accordHead">
+      <div class="card-title" style="margin:0">Konfigurasi Sistem</div>
+      <div class="accord-arrow" id="accordArrow">&#9662;</div>
+    </div>
+    <div id="configBody" style="display:none" class="accord-body">
+      <div class="form-grid">
+        <div class="fg"><label>MQTT Broker</label><input id="fBroker" type="text" placeholder="192.168.1.x"></div>
+        <div class="fg"><label>MQTT Port</label><input id="fPort" type="number" min="1" max="65535" value="1883"></div>
+        <div class="fg"><label>MQTT Username</label><input id="fUser" type="text" placeholder="(opsional)"></div>
+        <div class="fg"><label>MQTT Password</label><input id="fPass" type="password" placeholder="(opsional)"></div>
+        <div class="fg"><label>Ambang Kering (%)</label><input id="fDry" type="number" min="10" max="60"></div>
+        <div class="fg"><label>Ambang Basah (%)</label><input id="fWet" type="number" min="30" max="90"></div>
+        <div class="fg"><label>Maks Pompa Aktif (detik)</label><input id="fPumpMax" type="number" min="5" max="120"></div>
+        <div class="fg"><label>Cooldown (detik)</label><input id="fCooldown" type="number" min="10" max="600"></div>
+        <div class="fg"><label>ADC Kering (raw)</label><input id="fDryRaw" type="number"></div>
+        <div class="fg"><label>ADC Basah (raw)</label><input id="fWetRaw" type="number"></div>
+      </div>
+      <div class="form-foot">
+        <button class="btn-save" onclick="saveConfig()">&#128190; Simpan Konfigurasi</button>
+        <span class="form-note">&#9888; Restart diperlukan untuk menerapkan perubahan MQTT.</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /grid -->
+<div id="toasts"></div>
+
+<script>
+'use strict';
+const hist = [], MAXH = 60;
+let selDur = 5000, cfg = {}, ws, reconnDelay = 1000;
+
+/* ── Chart colors (light theme) ── */
+const C = {
+  bg:    '#f5fbf2',
+  grid:  '#d4e8c4',
+  label: '#90b898',
+  leaf:  '#22a852',
+  leafFill0: 'rgba(34,168,82,.18)',
+  leafFill1: 'rgba(34,168,82,.01)',
+  dot:   '#22a852',
+  dotStroke: '#ffffff',
+  dryLine: 'rgba(240,160,32,.6)',
+  wetLine: 'rgba(52,152,219,.6)',
+};
+
+/* ── WebSocket ── */
+function wsConnect() {
+  ws = new WebSocket('ws://' + location.hostname + ':81/');
+  ws.onopen = () => {
+    setPill('ok','Terhubung');
+    g('wsDot').classList.remove('blink');
+    reconnDelay = 1000;
+  };
+  ws.onmessage = e => { try { onMsg(JSON.parse(e.data)); } catch(_){} };
+  ws.onclose = () => {
+    setPill('warn','Terputus \u2014 mencoba ulang...');
+    g('wsDot').classList.add('blink');
+    setTimeout(wsConnect, reconnDelay);
+    reconnDelay = Math.min(reconnDelay * 1.6, 16000);
+  };
+  ws.onerror = () => ws.close();
+}
+function wsSend(o) { if(ws && ws.readyState===1) ws.send(JSON.stringify(o)); }
+
+/* ── Message handler ── */
+function onMsg(d) {
+  if (d.t !== 's') return;
+  if (d.ver) g('verLabel').textContent = 'v' + d.ver + ' \u00b7 Pagi Kebun';
+  setGauge(d.soil);
+  // Hanya tambahkan ke riwayat saat pembacaan sensor valid (bukan null)
+  if (d.soil !== null && d.soil !== undefined) {
+    hist.push(d.soil);
+    if (hist.length > MAXH) hist.shift();
+    g('histCount').textContent = '\u2014 ' + hist.length + ' data';
+  }
+  drawChart();
+  setDht(d.temp, d.humidity);
+  setPump(d.pump, d.state);
+  const ok = !!d.mqtt;
+  g('statMqtt').className = 'stat ' + (ok ? 'ok' : 'err');
+  g('mqttDot').className  = 'stat-dot ' + (ok ? 'ok' : 'err');
+  g('mqttVal').textContent = ok ? 'Terhubung' : 'Terputus';
+  g('ipVal').textContent   = d.ip || '\u2014';
+  g('uptimeVal').textContent = fmtUptime(d.uptime);
+}
+
+/* ── Gauge ── */
+function setGauge(v) {
+  const arc = g('gArc'), val = g('gVal'), badge = g('soilBadge'), status = g('soilStatus');
+
+  // Sensor invalid (null) \u2192 placeholder, sembunyikan badge, tampilkan banner
+  if (v === null || v === undefined) {
+    arc.style.strokeDashoffset = 503;
+    arc.style.stroke = '#cbd5b8';
+    val.textContent = '--';
+    val.setAttribute('fill', '#9ca3af');
+    g('soilDesc').textContent = 'Sensor tanah terputus';
+    badge.style.display = 'none';
+    status.style.display = 'block';
+    return;
+  }
+
+  status.style.display = 'none';
+  arc.style.strokeDashoffset = 503 * (1 - v / 100);
+  let arcColor, textColor, cls, desc, icon, text;
+  if (v < 30) {
+    arcColor = '#f0a020'; textColor = '#c07808';
+    cls = 'badge-dry'; icon = '\u2600\ufe0f'; text = 'KERING';
+    desc = 'Tanah kering \u2014 penyiraman dibutuhkan';
+  } else if (v < 55) {
+    arcColor = '#22a852'; textColor = '#187a3c';
+    cls = 'badge-ok';  icon = '\ud83c\udf3f'; text = 'OPTIMAL';
+    desc = 'Kelembaban tanah dalam kondisi ideal';
+  } else {
+    arcColor = '#3498db'; textColor = '#1870b4';
+    cls = 'badge-wet'; icon = '\ud83d\udca7'; text = 'LEMBAB';
+    desc = 'Tanah cukup lembab, pompa tidak diperlukan';
+  }
+  arc.style.stroke = arcColor;
+  val.textContent = v;
+  val.setAttribute('fill', textColor);
+  g('soilDesc').textContent = desc;
+  badge.style.display = 'inline-flex';
+  badge.className = 'badge ' + cls;
+  badge.textContent = icon + ' ' + text;
+}
+
+/* ── DHT22 (Suhu + Kelembapan Udara) ── */
+function setDht(t, h) {
+  const tBox = g('dhtTempBox'), hBox = g('dhtHumBox');
+  const tValid = (t !== null && t !== undefined && !isNaN(t));
+  const hValid = (h !== null && h !== undefined && !isNaN(h));
+
+  if (tValid) {
+    g('tempVal').textContent = (+t).toFixed(1);
+    tBox.classList.remove('cool','warm');
+    if      (t < 22) tBox.classList.add('cool');
+    else if (t > 30) tBox.classList.add('warm');
+  } else {
+    g('tempVal').textContent = '--';
+    tBox.classList.remove('cool','warm');
+  }
+
+  if (hValid) {
+    g('humVal').textContent = (+h).toFixed(1);
+    hBox.classList.toggle('humid', h >= 60);
+  } else {
+    g('humVal').textContent = '--';
+    hBox.classList.remove('humid');
+  }
+
+  g('dhtStatus').style.display = (tValid && hValid) ? 'none' : 'block';
+}
+
+/* ── Pump State ── */
+const SM = {
+  IDLE     : {dot:'idle',     name:'Siaga',              sub:'Pompa tidak aktif'},
+  WATERING : {dot:'watering', name:'Sedang Menyiram \ud83d\udca7', sub:'Penyiraman otomatis aktif'},
+  COOLDOWN : {dot:'cooldown', name:'Jeda (Cooldown)',    sub:'Menunggu sebelum siklus berikutnya'},
+  MANUAL_ON: {dot:'manual',   name:'Manual ON',          sub:'Diaktifkan secara manual'},
+};
+function setPump(on, state) {
+  const m = SM[state] || {dot:'idle', name:state, sub:''};
+  g('stateDot').className = 'state-dot ' + m.dot;
+  g('stateName').textContent = m.name;
+  g('stateSub').textContent  = m.sub;
+  g('btnOn').disabled  = on;
+  g('btnOff').disabled = !on;
+}
+
+/* ── Commands ── */
+function setDur(btn, ms) {
+  selDur = ms;
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function pumpOn()  { wsSend({cmd:'pump',state:'on', dur:selDur}); toast('info','\ud83d\udca7 Pompa nyala selama ' + selDur/1000 + ' detik'); }
+function pumpOff() { wsSend({cmd:'pump',state:'off'}); toast('warn','\u26d4 Pompa dimatikan'); }
+
+/* ── Sparkline Chart ── */
+function drawChart() {
+  const c = g('chart');
+  const W = c.offsetWidth || 600, H = 88;
+  if (c.width !== W) c.width = W;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const P = {t:10,b:6,l:6,r:6};
+  const cW = W-P.l-P.r, cH = H-P.t-P.b;
+
+  /* BG — mirip tanah segar */
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0,0,W,H);
+
+  /* Grid */
+  ctx.lineWidth=1; ctx.setLineDash([3,4]); ctx.strokeStyle = C.grid;
+  [25,50,75].forEach(p => {
+    const y = P.t+cH-(p/100)*cH;
+    ctx.beginPath(); ctx.moveTo(P.l,y); ctx.lineTo(W-P.r,y); ctx.stroke();
+    ctx.fillStyle = C.label; ctx.font='9px sans-serif';
+    ctx.fillText(p+'%', 8, y-2);
+  });
+
+  /* Garis ambang */
+  const dry = cfg.dryThreshold||30, wet = cfg.wetThreshold||55;
+  ctx.lineWidth=1.5;
+  [[dry,C.dryLine],[wet,C.wetLine]].forEach(([p,c2]) => {
+    const y = P.t+cH-(p/100)*cH;
+    ctx.strokeStyle=c2; ctx.setLineDash([5,5]);
+    ctx.beginPath(); ctx.moveTo(P.l,y); ctx.lineTo(W-P.r,y); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  if (hist.length < 2) return;
+  const n=hist.length, dx=cW/(n-1);
+  const px=(i,v)=>[P.l+i*dx, P.t+cH-(Math.min(100,Math.max(0,v))/100)*cH];
+
+  /* Gradient fill — seperti tanaman tumbuh */
+  ctx.beginPath();
+  hist.forEach((v,i)=>{ const[x,y]=px(i,v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.lineTo(P.l+(n-1)*dx,H-P.b); ctx.lineTo(P.l,H-P.b); ctx.closePath();
+  const gr=ctx.createLinearGradient(0,P.t,0,H);
+  gr.addColorStop(0, C.leafFill0); gr.addColorStop(1, C.leafFill1);
+  ctx.fillStyle=gr; ctx.fill();
+
+  /* Garis kelembaban */
+  ctx.beginPath(); ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.strokeStyle=C.leaf;
+  hist.forEach((v,i)=>{ const[x,y]=px(i,v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.stroke();
+
+  /* Titik terkini */
+  const [lx,ly]=px(n-1,hist[n-1]);
+  ctx.beginPath(); ctx.arc(lx,ly,5,0,2*Math.PI);
+  ctx.fillStyle=C.dot; ctx.fill();
+  ctx.strokeStyle=C.dotStroke; ctx.lineWidth=2; ctx.stroke();
+}
+window.addEventListener('resize', drawChart);
+
+/* ── Config ── */
+let accordOpen=false;
+g('accordHead').onclick=()=>{
+  accordOpen=!accordOpen;
+  g('configBody').style.display=accordOpen?'block':'none';
+  g('accordArrow').className='accord-arrow'+(accordOpen?' open':'');
+  if(accordOpen && !cfg.mqttBroker) loadCfg();
+};
+function loadCfg() {
+  fetch('/api/config').then(r=>r.json()).then(d=>{
+    cfg=d;
+    g('fBroker').value   = d.mqttBroker||'';
+    g('fPort').value     = d.mqttPort||1883;
+    g('fUser').value     = d.mqttUser||'';
+    g('fPass').value     = '';
+    g('fDry').value      = d.dryThreshold??30;
+    g('fWet').value      = d.wetThreshold??55;
+    g('fPumpMax').value  = d.pumpMaxSec??30;
+    g('fCooldown').value = d.cooldownSec??90;
+    g('fDryRaw').value   = d.soilDryRaw||'';
+    g('fWetRaw').value   = d.soilWetRaw||'';
+    drawChart();
+  }).catch(()=>toast('err','Gagal memuat konfigurasi'));
+}
+function saveConfig() {
+  const body={
+    mqttBroker:g('fBroker').value, mqttPort:+g('fPort').value,
+    mqttUser:g('fUser').value,     mqttPass:g('fPass').value,
+    dryThreshold:+g('fDry').value, wetThreshold:+g('fWet').value,
+    pumpMaxSec:+g('fPumpMax').value, cooldownSec:+g('fCooldown').value,
+    soilDryRaw:+g('fDryRaw').value,  soilWetRaw:+g('fWetRaw').value,
+  };
+  cfg={...cfg,...body};
+  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(r=>r.json()).then(d=>{toast(d.ok?'ok':'err',d.msg||(d.ok?'\ud83c\udf3f Konfigurasi tersimpan':'Gagal'));if(d.ok)drawChart();})
+    .catch(()=>toast('err','Gagal menyimpan konfigurasi'));
+}
+
+/* ── Helpers ── */
+function g(id){return document.getElementById(id)}
+function setPill(t,m){g('wsPill').className='ws-pill '+t;g('wsLabel').textContent=m}
+function fmtUptime(s){
+  if(s==null)return '\u2014';
+  const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),ss=s%60;
+  return (d>0?d+'h ':'')+pad(h)+':'+pad(m)+':'+pad(ss);
+}
+function pad(n){return String(n).padStart(2,'0')}
+function toast(type,msg){
+  const t=document.createElement('div');
+  t.className='toast '+type; t.textContent=msg;
+  g('toasts').appendChild(t);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),350);},3500);
+}
+
+/* ── Init ── */
+loadCfg();
+wsConnect();
+drawChart();
+</script>
+</body>
+</html>
